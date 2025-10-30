@@ -1,0 +1,81 @@
+package com.example.demo.controller;
+
+import com.example.demo.dto.CreateAppointmentRequest;
+import com.example.demo.entity.Appointment;
+import com.example.demo.service.AppointmentService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.List;
+
+@RestController
+@RequestMapping("/appointments")
+public class AppointmentController {
+
+    @Autowired
+    private AppointmentService appointmentService;
+
+    // ✅ Create new appointment
+    @PostMapping
+    public ResponseEntity<?> create(@RequestBody CreateAppointmentRequest req,
+                                    @RequestHeader(value = "X-User-Id", required = false) Long userId,
+                                    @RequestHeader(value = "X-User-Email", required = false) String userEmail,
+                                    Principal principal) {
+    	
+    	 if (userId == null && principal != null) {
+    		 userEmail = principal.getName();
+    		 
+    	 }
+//    	 boolean doctorExists = doctorService.existsById(req.getDoctorId());
+//    	    if (!doctorExists) {
+//    	        return ResponseEntity.badRequest()
+//    	                .body("Doctor with ID " + req.getDoctorId() + " not found");
+//    	    }
+    	 
+    	     Appointment appt = new Appointment();
+    	    appt.setDoctorId(req.getDoctorId());
+    	    appt.setUserId(userId);
+    	    appt.setStartTime(req.getStartTime());
+    	    appt.setEndTime(req.getEndTime());
+    	  
+
+    	    Appointment saved = appointmentService.create(appt);
+
+    	    return ResponseEntity.ok(saved);
+    }
+
+    // ✅ Get appointment by ID
+    @GetMapping("/{id}")
+    public ResponseEntity<Appointment> getById(@PathVariable Long id) {
+        return appointmentService.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ✅ Get appointments by user ID
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Appointment>> getByUserId(@PathVariable Long userId) {
+        List<Appointment> list = appointmentService.findByUserId(userId);
+        return ResponseEntity.ok(list);
+    }
+
+    // ✅ Get appointments by doctor ID
+    @GetMapping("/doctor/{doctorId}")
+    public ResponseEntity<List<Appointment>> getByDoctorId(@PathVariable Long doctorId) {
+        List<Appointment> list = appointmentService.findByDoctorId(doctorId);
+        return ResponseEntity.ok(list);
+    }
+
+    // ✅ Update appointment status
+    @PutMapping("/{id}/status")
+    public ResponseEntity<Appointment> updateStatus(
+            @PathVariable Long id,
+            @RequestParam String status
+    ) {
+        Appointment updated = appointmentService.updateStatus(id, status);
+        return ResponseEntity.ok(updated);
+    }
+}

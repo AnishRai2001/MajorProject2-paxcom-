@@ -1,0 +1,36 @@
+server:
+  port: 5555
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      routes:
+        - id: jwt-service
+          uri: lb://JWTSERVICE
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/users/(?<segment>.*), /api/users/${segment}
+
+        - id: doctor-service
+          uri: lb://DOCTORSERVICE
+          predicates:
+            - Path=/api/doctors/**
+          filters:
+            - RewritePath=/api/doctors/(?<segment>.*), /${segment}
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

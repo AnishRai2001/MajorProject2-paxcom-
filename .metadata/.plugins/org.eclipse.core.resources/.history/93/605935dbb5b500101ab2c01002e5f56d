@@ -1,0 +1,108 @@
+package com.example.jwtService.controller;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.example.jwtService.Dto.LoginRequest;
+import com.example.jwtService.Dto.RegisterRequest;
+import com.example.jwtService.Dto.UserDto;
+import com.example.jwtService.Entity.User;
+import com.example.jwtService.Service.JwtService;
+import com.example.jwtService.Service.UserService;
+import com.example.jwtService.repository.UserRepository;
+import com.example.jwtService.structure.ApiResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+@RestController
+@RequestMapping("/api/users")
+@CrossOrigin(origins = "*")
+public class UserController {
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    // ✅ Register user (Multipart Form)
+    @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<UserDto>> registerUser(
+            @RequestPart("user") String userJson,
+            @RequestPart(value = "profilePictures", required = false) MultipartFile[] profilePictures
+    ) throws Exception {
+
+        ObjectMapper mapper = new ObjectMapper();
+        RegisterRequest registerRequest = mapper.readValue(userJson, RegisterRequest.class);
+
+        if (profilePictures != null) {
+            registerRequest.setProfilePictures(profilePictures);
+        }
+
+        UserDto savedUser = userService.registerUser(registerRequest);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(true, "User registered successfully", savedUser));
+    }
+
+    // ✅ Get all users
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<UserDto>>> getAllUsers() {
+        List<UserDto> users = userService.getAllUsers();
+        return ResponseEntity.ok(new ApiResponse<>(true, "Users fetched successfully", users));
+    }
+
+    // ✅ Login
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<String>> login(@RequestBody LoginRequest loginDto) {
+        ApiResponse<String> response = new ApiResponse<>();
+
+        try {
+            UsernamePasswordAuthenticationToken token =
+                    new UsernamePasswordAuthenticationToken(loginDto.email(), loginDto.password());
+
+            var authentication = authenticationManager.authenticate(token);
+            String role = authentication.getAuthorities().iterator().next().getAuthority();
+            String jwtToken = jwtService.generateToken(loginDto.email(), role);
+
+            response.setMessage("Welcome " + loginDto.email());
+            response.setSuccess(true);
+            response.setData(jwtToken);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception ex) {
+            response.setMessage("Invalid credentials");
+            response.setSuccess(false);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+    }
+
+    // ✅ Get user by ID
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<UserDto>> getUserById(@PathVariable Long id) {
+        Optional<User> userOpt = userRepository.findById(id);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(false, "User not found", null));
+        }
+
+        UserDto dto = userService.convertToDto(userOpt.get());
+        return ResponseEntity.ok(new ApiResponse<>(true, "User fetched successfully", dto));
+    }
+}

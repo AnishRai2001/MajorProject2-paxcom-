@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      routes:
+        - id: JWTSERVICE
+          uri: lb://jwtService
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - JwtAuthFilter
+
+        - id: DOCTORSERVICE
+          uri: lb://doctor-service
+          predicates:
+            - Path=/api/doctors/**
+          filters:
+            - JwtAuthFilter
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true

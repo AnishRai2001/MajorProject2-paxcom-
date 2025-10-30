@@ -1,0 +1,64 @@
+package com.example.jwtService.controller;
+
+import com.example.jwtService.Dto.LoginRequest;
+import com.example.jwtService.Dto.RegisterRequest;
+import com.example.jwtService.entity.User;
+import com.example.jwtService.service.UserService;
+import com.example.jwtService.service.JwtService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/users")
+@CrossOrigin(origins = "*")
+public class UserController {
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    // ✅ Register API
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
+
+        User savedUser = userService.registerUser(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                "User registered successfully with email: " + savedUser.getEmail()
+        );
+    }
+
+    // ✅ Login API
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+
+        authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                loginRequest.getEmail(), loginRequest.getPassword()
+            )
+        );
+
+        String token = jwtService.generateToken(loginRequest.getEmail());
+
+        return ResponseEntity.ok(token);
+    }
+
+    // ✅ Get Current User Details (optional)
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String token) {
+        String email = jwtService.extractUsername(token.substring(7));
+        User user = userService.getUserByEmail(email);
+
+        return ResponseEntity.ok(user);
+    }
+}
