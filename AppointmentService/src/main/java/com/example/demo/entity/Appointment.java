@@ -1,0 +1,48 @@
+package com.example.demo.entity;
+
+
+import jakarta.persistence.*;
+import java.time.Instant;
+import java.time.ZonedDateTime;
+
+@Entity
+@Table(name = "appointments")
+public class Appointment {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private Long userId;
+    private Long doctorId;
+
+    @Column(nullable = false)
+    private ZonedDateTime startTime;
+
+    private ZonedDateTime endTime;
+
+    @Column(nullable = false)
+    private String status; // PENDING, CONFIRMED, CANCELLED
+
+    private Instant createdAt = Instant.now();
+
+    // getters & setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
+
+    public Long getDoctorId() { return doctorId; }
+    public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
+
+    public ZonedDateTime getStartTime() { return startTime; }
+    public void setStartTime(ZonedDateTime startTime) { this.startTime = startTime; }
+
+    public ZonedDateTime getEndTime() { return endTime; }
+    public void setEndTime(ZonedDateTime endTime) { this.endTime = endTime; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+}
